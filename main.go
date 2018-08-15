@@ -18,12 +18,14 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/prometheus/common/log"
-	"io/ioutil"
-	"net/http"
-	"time"
 )
 
 const (
@@ -83,11 +85,12 @@ func (e *Exporter) collectMetrics(stats *Stats, ch chan<- prometheus.Metric) {
 }
 
 func (e *Exporter) collectTree(name string, data interface{}, labels prometheus.Labels, ch chan<- prometheus.Metric) {
+	metricName := strings.Replace(strings.Replace(strings.TrimRight(name, "]"), "_[", "__", 1), "][", "__", -1)
 	if v, ok := data.(float64); ok {
 		if len(labels) == 0 {
 			metric := prometheus.NewGauge(prometheus.GaugeOpts{
 				Namespace: namespace,
-				Name:      name,
+				Name:      metricName,
 			})
 			metric.Set(v)
 			ch <- metric
@@ -98,7 +101,7 @@ func (e *Exporter) collectTree(name string, data interface{}, labels prometheus.
 			}
 			vec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
 				Namespace: namespace,
-				Name:      name,
+				Name:      metricName,
 			}, labelNames)
 			vec.With(labels).Set(v)
 			vec.Collect(ch)
